@@ -41,22 +41,15 @@ class Table
 	def select(*cols, where: {})
 		results = []
 
-		File.open(@filename, "r") do |f|
-			until f.eof?
-				serialized_record = f.readline
-				record = Record::read serialized_record	
+		read_data_and do |record|
+			
+			add = where.all? do |col, value|
+				index = retrieve_column_index col
+				record.matches?(index, value)
+			end
 
-				add = true
-				where.each do |col, value|
-					index = retrieve_column_index col
-					if not record.matches?(index, value)
-						add = false
-					end
-				end
-
-				if add
-					results.push(record)
-				end
+			if add
+				results.push(record)
 			end
 		end
 
@@ -75,12 +68,22 @@ class Table
 	def read
 		puts "Warning!  Overwriting table!"
 		@records = []
-		
+
+		read_data_and do |record|
+			@records.push record
+		end
+	end
+
+	def read_data_and
+		if not block_given? 
+			return
+		end
+
 		File.open(@filename, "r") do |f|
 			until f.eof?
 				serialized_record = f.readline
 				record = Record::read serialized_record
-				@records.push record
+				yield record
 			end
 		end
 	end
