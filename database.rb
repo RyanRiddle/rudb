@@ -43,37 +43,6 @@ class Table
 		record = Record.new(attrs)
 		@records.push record
 	end
-
-
-	def where(enum, clause: {})
-		results = []
-
-		
-		results	
-	end
-=begin
-	def select(*cols, clause: {})
-		return where(select(), clause)
-		results = []
-
-		# filter on where
-		read_data_and do |record|
-			add = where.all? do |col, value|
-				index = retrieve_column_index col
-				record.matches?(index, value)
-			end
-
-			if add
-				results.push(record)
-			end
-		end
-
-		col_indices = cols.map {|col| retrieve_column_index col}
-		results.map! { |record| record.choose_columns *col_indices }
-
-		results
-	end
-=end
 	
 	def write
 		File.open(@filename, "w") do |f|
@@ -95,19 +64,5 @@ class Table
 
 	def query
 		Query.new @filename, self
-	end
-
-	def read_data_and
-		if not block_given? 
-			return
-		end
-
-		File.open(@filename, "r") do |f|
-			until f.eof?
-				serialized_record = f.readline
-				record = Record::read serialized_record
-				yield record
-			end
-		end
 	end
 end
