@@ -1,3 +1,5 @@
+require_relative 'query'
+
 class Record
 	def initialize(attrs)
 		@attrs = attrs
@@ -13,6 +15,10 @@ class Record
 
 	def matches?(index, value)
 		@attrs[index] == value
+	end
+
+	def choose_columns(*col_indices)
+		@attrs.values_at(*col_indices)
 	end
 end
 
@@ -38,11 +44,20 @@ class Table
 		@records.push record
 	end
 
-	def select(*cols, where: {})
+
+	def where(enum, clause: {})
 		results = []
 
+		
+		results	
+	end
+=begin
+	def select(*cols, clause: {})
+		return where(select(), clause)
+		results = []
+
+		# filter on where
 		read_data_and do |record|
-			
 			add = where.all? do |col, value|
 				index = retrieve_column_index col
 				record.matches?(index, value)
@@ -53,8 +68,12 @@ class Table
 			end
 		end
 
+		col_indices = cols.map {|col| retrieve_column_index col}
+		results.map! { |record| record.choose_columns *col_indices }
+
 		results
 	end
+=end
 	
 	def write
 		File.open(@filename, "w") do |f|
@@ -72,6 +91,10 @@ class Table
 		read_data_and do |record|
 			@records.push record
 		end
+	end
+
+	def query
+		Query.new @filename
 	end
 
 	def read_data_and
