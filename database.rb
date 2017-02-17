@@ -94,7 +94,7 @@ class Table
 	end
 
 	def query
-		Query.new @filename
+		Query.new @filename, self
 	end
 
 	def read_data_and
