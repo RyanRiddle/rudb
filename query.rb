@@ -49,6 +49,26 @@ class Query
 		Query.new @filename, @table, e
 	end
 
-	def select
+	def select(*cols)
+		e = Enumerator.new do |y|
+			while true
+				begin
+					record = @enum.next
+
+					if not cols.empty?
+						col_indices = cols.map do |col| 
+							@table.retrieve_column_index col
+						end
+						record = record.choose_columns *col_indices
+					end
+
+					y << record
+				rescue StopIteration
+					raise StopIteration
+				end
+			end
+		end
+
+		Query.new @filename, @table, e
 	end
 end
