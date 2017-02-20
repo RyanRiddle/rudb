@@ -2,64 +2,43 @@ require_relative 'query'
 require 'date'
 
 class Record
-	def initialize(attrs)
-		@attrs = attrs
+	def initialize(hash)
+		@hash = hash
 	end
 
-	def write
-		Marshal.dump @attrs
+	def values_at(*keys)
+		keys.empty? ? @hash : @hash.values_at(*keys)
+	end
+
+	def matches?(key, value)
+		@hash[key] == value
+	end
+
+	def serialize
+		Marshal.dump @hash
 	end
 
 	def self.read(marshaled_record)
-		Record.new (Marshal.load marshaled_record)
-	end
-
-	def matches?(index, value)
-		@attrs[index] == value
-	end
-
-	def choose_columns(*col_indices)
-		@attrs.values_at(*col_indices)
+		Record.new(Marshal.load marshaled_record)
 	end
 end
 
 class Table
-	def initialize(name, *columns)
+	def initialize(name)
 		@name = name
 		@filename = "#{@name}.db"
-		@columns = columns
-		@records = []
 	end
 
-	def retrieve_column_index(colname)
-		index =	@columns.index colname
-		if index.nil?
-			raise Exception
-		end	
-
-		index
-	end
-
-	def insert(*attrs)
-		record = Record.new(attrs)
-		@records.push record
+	def insert(row)
+		record = Record.new row
+		write record
 	end
 	
-	def write
-		File.open(@filename, "w") do |f|
-			@records.each do |record|
-				serialized_record = record.write
-				f.write(serialized_record + "\n")
-			end
-		end
-	end
-
-	def read
-		puts "Warning!  Overwriting table!"
-		@records = []
-
-		read_data_and do |record|
-			@records.push record
+	def write(record)
+		File.open(@filename, "a") do |f|
+			serialized_record = record.serialize
+			f.write(serialized_record.length.to_s + "\n")
+			f.write(serialized_record)
 		end
 	end
 

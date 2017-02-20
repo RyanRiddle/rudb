@@ -1,15 +1,16 @@
 require_relative 'database' # for Record
 
 class Query
-	def initialize(filename, table, enum=nil)
+	def initialize(filename, table)
 		@filename = filename
 		@table = table
 
-		@record_enumerator = enum || 
+		@record_enumerator =
 			Enumerator.new do |y|
 				File.open(filename, "r") do |f|
 					until f.eof?
-						serialized_record = f.readline
+						length = f.readline.to_i
+						serialized_record = f.read length
 						record = Record::read serialized_record
 						y << record
 					end
@@ -22,28 +23,18 @@ class Query
 	end
 
 	def where(clause = {})
-		e = @record_enumerator.select do |record|
-			clause.all? do |col, value|
-				index = @table.retrieve_column_index col
-				record.matches?(index, value)
+		@record_enumerator = @record_enumerator.select do |record|
+			clause.all? do |key, value|
+				record.matches?(key, value)
 			end
 		end
-
-		Query.new @filename, @table, e
+		self
 	end
 
 	def select(*cols)
-		e = @record_enumerator.map do |record|
-			if not cols.empty?
-				col_indices = cols.map do |col| 
-					@table.retrieve_column_index col
-				end
-				record.choose_columns *col_indices
-			else
-				record
-			end
+		@reocrd_enumerator = @record_enumerator.map do |record|
+			record.values_at *cols
 		end
-			
-		Query.new @filename, @table, e
+		self		
 	end
 end
