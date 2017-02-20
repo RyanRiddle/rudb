@@ -1,4 +1,5 @@
 require_relative 'query'
+require 'date'
 
 class Record
 	def initialize(attrs)

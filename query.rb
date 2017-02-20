@@ -2,8 +2,10 @@ require_relative 'database' # for Record
 
 class Query
 	def initialize(filename, table, enum=nil)
+		@filename = filename
 		@table = table
-		@enum = if enum.nil?
+
+		@record_enumerator = enum || 
 			Enumerator.new do |y|
 				File.open(filename, "r") do |f|
 					until f.eof?
@@ -12,37 +14,18 @@ class Query
 						y << record
 					end
 				end
-			end
-		else
-			enum
-		end
+			end.lazy
 	end
 
 	def top(num)
-		num.times.map do
-			begin
-				@enum.next
-			rescue StopIteration
-				next
-			end
-		end
+		@record_enumerator.take(num).force()
 	end
 
 	def where(clause = {})
-		e = Enumerator.new do |y|
-			while true
-				begin
-					record = @enum.next
-					all = clause.all? do |col, value|
-							index = @table.retrieve_column_index col
-							record.matches?(index, value)
-					end
-					if all
-						y << record
-					end
-				rescue StopIteration
-					raise StopIteration
-				end
+		e = @record_enumerator.select do |record|
+			clause.all? do |col, value|
+				index = @table.retrieve_column_index col
+				record.matches?(index, value)
 			end
 		end
 
@@ -50,25 +33,17 @@ class Query
 	end
 
 	def select(*cols)
-		e = Enumerator.new do |y|
-			while true
-				begin
-					record = @enum.next
-
-					if not cols.empty?
-						col_indices = cols.map do |col| 
-							@table.retrieve_column_index col
-						end
-						record = record.choose_columns *col_indices
-					end
-
-					y << record
-				rescue StopIteration
-					raise StopIteration
+		e = @record_enumerator.map do |record|
+			if not cols.empty?
+				col_indices = cols.map do |col| 
+					@table.retrieve_column_index col
 				end
+				record.choose_columns *col_indices
+			else
+				record
 			end
 		end
-
+			
 		Query.new @filename, @table, e
 	end
 end
