@@ -1,9 +1,8 @@
-require_relative 'database' # for Record
+require_relative 'record'
 
 class Query
-	def initialize(filename, table)
+	def initialize(filename)
 		@filename = filename
-		@table = table
 
 		@record_enumerator =
 			Enumerator.new do |y|
