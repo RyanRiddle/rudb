@@ -31,7 +31,7 @@ class Query
 	end
 
 	def select(*cols)
-		@reocrd_enumerator = @record_enumerator.map do |record|
+		@record_enumerator = @record_enumerator.map do |record|
 			record.values_at *cols
 		end
 		self		

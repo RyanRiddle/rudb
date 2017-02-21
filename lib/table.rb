@@ -21,6 +21,6 @@ class Table
 	end
 
 	def query
-		Query.new @filename, self
+		Query.new @filename
 	end
 end

@@ -9,9 +9,9 @@ class Database
 			File.join(dir, name)
 		end
 
+		@tables = {}
 		if not Dir.exists? @directory
 			Dir.mkdir @directory
-			@tables = {}
 		else
 			getfiles.each do |file|
 				filename = file.split(".")[0]
