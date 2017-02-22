@@ -13,6 +13,12 @@ class Record
 		@hash[key] == value
 	end
 
+	def set(clause = {})
+		clause.each do |key, value|
+			@hash[key] = value
+		end
+	end
+
 	def serialize
 		Marshal.dump @hash
 	end

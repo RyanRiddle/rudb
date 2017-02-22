@@ -25,9 +25,17 @@ class Database
 	end	
 
 	def create_table(name)
-		@tables[name] = Table.new name, @directory
+		@tables[name] = Table.new name, @directory, self
 	end
 
+	def drop_table(name)
+		tbl = @tables.delete name
+		if not tbl.nil?
+			tbl.destroy
+		end
+	end
+
+	private
 	def getfiles
 		Dir.foreach(@directory).select { |file| file != ".." and file != "." }
 	end
