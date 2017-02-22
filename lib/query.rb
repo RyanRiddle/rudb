@@ -42,6 +42,12 @@ class Query
 		@db.drop_table ("tmp_tbl")
 	end
 
+	def delete
+		@record_enumerator.each do |record, offset|
+			@table.mark offset
+		end
+	end
+
 	def where(clause = {})
 		@record_enumerator = @record_enumerator.select do |record, offset|
 			clause.all? do |key, value|
