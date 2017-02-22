@@ -15,7 +15,7 @@ class Database
 		else
 			getfiles.each do |file|
 				filename = file.split(".")[0]
-				@tables[filename] = Table.new filename, @directory
+				@tables[filename] = Table.new filename, @directory, self
 			end
 		end
 	end
