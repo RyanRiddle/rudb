@@ -1,27 +1,11 @@
 require_relative 'record'
 
 class Query
-	def initialize(filename, table, db)
-		@filename = filename
+	def initialize(table, db)
 		@table = table
 		@db = db
 
-		@record_enumerator =
-			Enumerator.new do |y|
-				File.open(filename, "r") do |f|
-					until f.eof?
-						offset = f.tell
-						header = f.readline
-						deleted = header.split[0] != "0"
-						length = header.split[1].to_i
-						serialized_record = f.read length
-						if not deleted
-							record = Record::read serialized_record
-							y.yield record, offset
-						end	
-					end
-				end
-			end.lazy
+		@record_enumerator = table.each_record.lazy
 	end
 
 	def top(num=nil)
@@ -42,14 +26,18 @@ class Query
 			tmp_tbl.insert record
 		end		
 
-		@table.concat @db.get("tmp_tbl")
+		@table.concat tmp_tbl
 		@db.drop_table ("tmp_tbl")
+
+		@table.cleanup
 	end
 
 	def delete
 		@record_enumerator.each do |record, offset|
 			@table.mark offset
 		end
+
+		#@table.cleanup
 	end
 
 	def where(clause = {})
