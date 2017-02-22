@@ -24,7 +24,11 @@ class Query
 			end.lazy
 	end
 
-	def top(num)
+	def top(num=nil)
+		if num.nil?
+			return @record_enumerator.force()
+		end
+
 		@record_enumerator.take(num).force()
 	end
 
