@@ -37,7 +37,7 @@ class Query
 			@table.mark offset
 		end
 
-		#@table.cleanup
+		@table.cleanup
 	end
 
 	def where(clause = {})
