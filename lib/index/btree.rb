@@ -28,6 +28,17 @@ class Node
 		end
 	end
 
+	def search(key)
+		pos = find_pos key
+		if pos < @keys.length and @keys[pos] == key
+			@records[key]
+		elsif internal?
+			@children[pos].search(key)
+		else
+			nil
+		end
+	end
+
 	def print(level)
 		@keys.each_with_index do |key, i|
 			if internal?
@@ -113,7 +124,7 @@ class Node
 	def find_pos(key)
 		# what about if they key already exists?
 		pos = @keys.index do |k|
-			key < k
+			key <= k
 		end
 
 		pos ||= @keys.length
@@ -141,5 +152,9 @@ class BTree
 		if not @root.nil?
 			@root.print 0
 		end
+	end
+
+	def search(key)
+		@root.search(key)
 	end
 end
