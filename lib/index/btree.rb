@@ -2,7 +2,6 @@ require 'pry'
 
 class Node
 	attr_accessor :parent
-	attr_reader :records
 	def initialize(key_type, order, children=[nil], keys=[], records={})
 		@key_type = key_type
 		@order = order
@@ -103,7 +102,7 @@ class Node
 	end
 
 	def internal?
-		#raise "bad kid!" #unless @children.all? { |child| child.nil? } or @children.all? { |child| not child.nil? }
+		raise "bad kid!" unless @children.all? { |child| child.nil? } or @children.all? { |child| not child.nil? }
 		not @children.empty? and not @children.any? { |child| child.nil? }
 	end
 
