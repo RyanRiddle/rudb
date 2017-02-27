@@ -1,38 +1,34 @@
-require 'pry'
-
 class Node
 	attr_accessor :parent
+
 	def initialize(key_type, order, children=[nil], keys=[], records={})
 		@key_type = key_type
 		@order = order
 		@children = children
-		@children.each do |child|
-			if not child.nil?
-				child.parent = self
-			end
-		end
 		@keys = keys
 		@records = records
+
+		@children.each { |child| child.parent = self unless child.nil? }
 	end
 
 	def insert(record)
 		if not internal?
 			_insert record	
-			@parent || self
 		else
 			key = record.values_at(@key_type).first
 			child_pos = find_pos key
 			child = @children[child_pos]
 			child.insert record
-			@parent || self
 		end
+			
+		@parent || self
 	end
 
 	def search(key)
-		pos = find_pos key
-		if pos < @keys.length and @keys[pos] == key
+		if @keys.include? key
 			@records[key]
 		elsif internal?
+			pos = find_pos key
 			@children[pos].search(key)
 		else
 			nil
@@ -58,9 +54,6 @@ class Node
 	def take_last
 		last_key = @keys.last
 		@keys.delete last_key
-
-		#@children.delete_at(@children.length - 1)
-		raise "Key/child mismatch" unless @keys.length == @children.length - 1
 
 		last_record = @records.delete last_key
 		last_record
