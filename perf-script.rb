@@ -13,10 +13,15 @@ end
 Benchmark.bm do |x|
 	x.report do ||
 		str =  random_string()
-		1_000_000.times do |id|
+		100_000.times do |id|
 			@table.insert(id: id, string: str, score: rand(10))
 		end
 	end
+
+	x.report { 
+		@table.query().where({:id=>99999}).select(:id, :string, :score).top(1)
+	}
+
 =begin
 	x.report { @table.query().top() }
 
