@@ -7,6 +7,11 @@ class Node
 		@key_type = key_type
 		@order = order
 		@children = children
+		@children.each do |child|
+			if not child.nil?
+				child.parent = self
+			end
+		end
 		@keys = keys
 		@records = records
 	end
@@ -14,15 +19,13 @@ class Node
 	def insert(record)
 		if not internal?
 			_insert record	
+			@parent || self
 		else
 			key = record.values_at(@key_type).first
 			child_pos = find_pos key
 			child = @children[child_pos]
-			if not child.nil?
-				child.insert record
-			else
-				raise Exception
-			end
+			child.insert record
+			@parent || self
 		end
 	end
 
@@ -79,7 +82,7 @@ class Node
 		@keys.insert(pos, key)
 		@children.insert(pos+1, child)
 		if not child.nil?
-			puts child.records.first
+			child.parent = self
 		end
 		@records[key] = record
 
@@ -91,19 +94,17 @@ class Node
 				@parent = Node.new(@key_type, @order, [left])
 			end
 
-			left.parent = @parent
-			right.parent = @parent
-
 			record_for_parent = left.take_last
 
-			return @parent.accept(record_for_parent, right)
+			@parent.accept(record_for_parent, right)
 		end
 
 		@parent || self
 	end
 
 	def internal?
-		not @children.empty? and not @children.include? nil
+		#raise "bad kid!" #unless @children.all? { |child| child.nil? } or @children.all? { |child| not child.nil? }
+		not @children.empty? and not @children.any? { |child| child.nil? }
 	end
 
 	def full?
@@ -134,6 +135,7 @@ class BTree
 			@root = Node.new(@key_type, @order)
 		end	
 		@root = @root.insert record
+		print
 	end
 
 	def print
