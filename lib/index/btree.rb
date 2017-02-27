@@ -1,5 +1,8 @@
+require 'pry'
+
 class Node
 	attr_accessor :parent
+	attr_reader :records
 	def initialize(key_type, order, children=[nil], keys=[], records={})
 		@key_type = key_type
 		@order = order
@@ -28,9 +31,7 @@ class Node
 			if internal?
 				@children[i].print(level + 1)
 			end
-			puts @records
-			puts key
-			puts "\t" * level + key.to_s + @records[key].values_at(:name).first.to_s
+			puts "\t" * level + "#{key} #{@records[key].values_at(:name).first}"
 		end
 		if internal?
 			@children.last.print(level + 1)
@@ -41,43 +42,72 @@ class Node
 		_insert(record, right_child)
 	end
 
+	def take_last
+		last_key = @keys.last
+		@keys.delete last_key
+
+		#@children.delete_at(@children.length - 1)
+		raise "Key/child mismatch" unless @keys.length == @children.length - 1
+
+		last_record = @records.delete last_key
+		last_record
+	end
+
 	private
 	def split
-		mid = (@order / 2).ceil
-		right_keys = @keys.slice!(0, mid) 
+		mid = (@order / 2.0).ceil
+
+		right_keys = @keys.slice(mid, @keys.length)
+		right_children = @children.slice(mid, @children.length)
 		right_records = @records.select { |key, record| right_keys.include? key }
-		right = Node.new(@key_type, @order, @children.slice!(0, mid),
+		right = Node.new(@key_type, @order, 
+						right_children,
 						right_keys, 
 						right_records)
 
+		@keys = @keys.slice(0, mid)
+		@children = @children.slice(0, mid)
 		@records = @records.select { |key, record| @keys.include? key }
-		left = self	
+		left = self
+
 		return left, right
 	end
 
 	def _insert(record, child=nil)
 		key = record.values_at(@key_type).first
-
-		if @order - 1 == @keys.length
-			left, right = split
-			if @parent.nil?
-				@parent = Node.new(@key_type, @order, [left])
-			end
-			left.parent = @parent
-			right.parent = @parent
-			return @parent.accept(record, right)
-		end
-
 		pos = find_pos key	
 		@keys.insert(pos, key)
-		@children.push(child)
+		@children.insert(pos+1, child)
+		if not child.nil?
+			puts child.records.first
+		end
 		@records[key] = record
+
+		if full?
+			left, right = split
+
+			if @parent.nil?
+				#binding.pry
+				@parent = Node.new(@key_type, @order, [left])
+			end
+
+			left.parent = @parent
+			right.parent = @parent
+
+			record_for_parent = left.take_last
+
+			return @parent.accept(record_for_parent, right)
+		end
 
 		@parent || self
 	end
 
 	def internal?
 		not @children.empty? and not @children.include? nil
+	end
+
+	def full?
+		@order == @keys.length
 	end
 
 	def find_pos(key)
