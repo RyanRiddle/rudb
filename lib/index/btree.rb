@@ -6,8 +6,7 @@ end
 class Node
 	attr_accessor :parent
 
-	def initialize(key_type, order, children=[nil], keys=[], records={})
-		@key_type = key_type
+	def initialize(order, children=[nil], keys=[], records={})
 		@order = order
 		@children = children
 		@keys = keys
@@ -72,7 +71,7 @@ class Node
 		right_keys = @keys.slice(mid, @keys.length)
 		right_children = @children.slice(mid, @children.length)
 		right_records = @records.select { |key, value| right_keys.include? key }
-		right = Node.new(@key_type, @order, 
+		right = Node.new(@order, 
 						right_children,
 						right_keys, 
 						right_records)
@@ -100,7 +99,7 @@ class Node
 			left, right = split
 
 			if @parent.nil?
-				@parent = Node.new(@key_type, @order, [left])
+				@parent = Node.new(@order, [left])
 			end
 
 			key_for_parent, bucket_for_parent = left.take_last
@@ -134,15 +133,14 @@ class Node
 end
 
 class BTree
-	def initialize(key_type, order)
+	def initialize(order)
 		@root = nil
 		@order = order
-		@key_type = key_type
 	end	
 
 	def insert(key, value)
 		if @root.nil?
-			@root = Node.new(@key_type, @order)
+			@root = Node.new(@order)
 		end	
 		@root = @root.insert key, value
 		print
