@@ -1,3 +1,8 @@
+class Bucket
+	def initialize()
+	end
+end
+
 class Node
 	attr_accessor :parent
 
@@ -11,17 +16,15 @@ class Node
 		@children.each { |child| child.parent = self unless child.nil? }
 	end
 
-	def insert(record)
-		key = record.values_at(@key_type).first
-
+	def insert(key, value)
 		if @records.include? key
-			@records[key].push(record)
+			@records[key].push(value)
 		elsif not internal?
-			_insert(key, [record])
+			_insert(key, [value])
 		else
 			child_pos = find_pos key
 			child = @children[child_pos]
-			child.insert record
+			child.insert key, value
 		end
 			
 		@parent || self
@@ -68,7 +71,7 @@ class Node
 
 		right_keys = @keys.slice(mid, @keys.length)
 		right_children = @children.slice(mid, @children.length)
-		right_records = @records.select { |key, record| right_keys.include? key }
+		right_records = @records.select { |key, value| right_keys.include? key }
 		right = Node.new(@key_type, @order, 
 						right_children,
 						right_keys, 
@@ -76,7 +79,7 @@ class Node
 
 		@keys = @keys.slice(0, mid)
 		@children = @children.slice(0, mid)
-		@records = @records.select { |key, record| @keys.include? key }
+		@records = @records.select { |key, value| @keys.include? key }
 		left = self
 
 		return left, right
@@ -137,11 +140,11 @@ class BTree
 		@key_type = key_type
 	end	
 
-	def insert(record)
+	def insert(key, value)
 		if @root.nil?
 			@root = Node.new(@key_type, @order)
 		end	
-		@root = @root.insert record
+		@root = @root.insert key, value
 		print
 	end
 
