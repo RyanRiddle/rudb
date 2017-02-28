@@ -11,7 +11,7 @@ class Node
 		@buckets = buckets
 
 		@children.each { |child| child.parent = self unless child.nil? }
-		@minimum = (@order / 2.0).ceil 
+		@min_keys = ( @order / 2.0 ).ceil - 1
 	end
 
 	def insert(key, bucket)
@@ -121,11 +121,11 @@ class Node
 	end
 
 	def has_surplus?
-		@children.length > @minimum
+		@keys.length > @min_keys
 	end
 
 	def rebalance?
-		@keys.length < @minimum - 1
+		@keys.length < @min_keys
 	end
 
 	def get_left_and_right(child)
@@ -157,9 +157,13 @@ class Node
 		@keys.concat keys
 		@children.concat children
 		@buckets = @buckets.concat buckets
+
+		@children.all? { |child| child.nil? }
+		@children.delete_at 0	# faster or slower than removing at end?
 	end
 
 	def rebalance
+		binding.pry
 		left_sibling, right_sibling = get_siblings
 		if not right_sibling.nil? and right_sibling.has_surplus?
 			parent_key, parent_bucket = take_greater_key_from_parent
@@ -184,13 +188,15 @@ class Node
 			left.steal(right)
 
 			if @parent.root? and @parent.empty?
-				@parent = nil
+				left.parent = nil
 			elsif @parent.root?
-				@parent.rebalance
+				left.parent.rebalance
 			end
+
+			return left.find_parent
 		end	
 
-		find_parent
+		@parent.find_parent
 	end
 
 	def find_parent
@@ -269,7 +275,6 @@ class Node
 		_, _, deficient_node = take key
 
 		if internal?
-			binding.pry
 			left_subtree = @children[pos]
 			key, bucket, deficient_node = left_subtree.take_tree_max
 			__insert(key, bucket)
