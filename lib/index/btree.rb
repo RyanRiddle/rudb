@@ -12,10 +12,13 @@ class Node
 	end
 
 	def insert(record)
-		if not internal?
-			_insert record	
+		key = record.values_at(@key_type).first
+
+		if @records.include? key
+			@records[key].push(record)
+		elsif not internal?
+			_insert(key, [record])
 		else
-			key = record.values_at(@key_type).first
 			child_pos = find_pos key
 			child = @children[child_pos]
 			child.insert record
@@ -40,23 +43,23 @@ class Node
 			if internal?
 				@children[i].print(level + 1)
 			end
-			puts "\t" * level + "#{key} #{@records[key].values_at(:name).first}"
+			puts "\t" * level + "#{key} #{@records[key]}"
 		end
 		if internal?
 			@children.last.print(level + 1)
 		end
 	end
 
-	def accept(record, right_child)
-		_insert(record, right_child)
+	def accept(key, bucket, right_child)
+		_insert(key, bucket, right_child)
 	end
 
 	def take_last
 		last_key = @keys.last
 		@keys.delete last_key
 
-		last_record = @records.delete last_key
-		last_record
+		last_bucket = @records.delete last_key
+		return last_key, last_bucket
 	end
 
 	private
@@ -79,15 +82,16 @@ class Node
 		return left, right
 	end
 
-	def _insert(record, child=nil)
-		key = record.values_at(@key_type).first
+	def _insert(key, bucket, child=nil)
 		pos = find_pos key	
+
 		@keys.insert(pos, key)
 		@children.insert(pos+1, child)
+		@records[key] = bucket
+
 		if not child.nil?
 			child.parent = self
 		end
-		@records[key] = record
 
 		if full?
 			left, right = split
@@ -96,9 +100,9 @@ class Node
 				@parent = Node.new(@key_type, @order, [left])
 			end
 
-			record_for_parent = left.take_last
+			key_for_parent, bucket_for_parent = left.take_last
 
-			@parent.accept(record_for_parent, right)
+			@parent.accept(key_for_parent, bucket_for_parent, right)
 		end
 
 		@parent || self
