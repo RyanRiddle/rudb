@@ -158,12 +158,15 @@ class Node
 		@children.concat children
 		@buckets = @buckets.concat buckets
 
-		@children.all? { |child| child.nil? }
-		@children.delete_at 0	# faster or slower than removing at end?
+		# if joining two nodes at the bottom of the tree remove one of the leaves
+		if not internal?
+			@children.delete_at 0	# faster or slower than removing at end?
+		else
+			@children.each { |child| child.parent = self }
+		end
 	end
 
 	def rebalance
-		binding.pry
 		left_sibling, right_sibling = get_siblings
 		if not right_sibling.nil? and right_sibling.has_surplus?
 			parent_key, parent_bucket = take_greater_key_from_parent
@@ -187,9 +190,9 @@ class Node
 			left.__insert parent_key, parent_value
 			left.steal(right)
 
-			if @parent.root? and @parent.empty?
+			if left.parent.root? and left.parent.empty?
 				left.parent = nil
-			elsif @parent.root?
+			elsif left.parent.rebalance?
 				left.parent.rebalance
 			end
 
