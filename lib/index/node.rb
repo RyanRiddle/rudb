@@ -1,4 +1,5 @@
 require_relative 'bucket_collection'
+require 'pry'
 
 class Node
 	attr_accessor :parent
@@ -10,6 +11,7 @@ class Node
 		@buckets = buckets
 
 		@children.each { |child| child.parent = self unless child.nil? }
+		@minimum = (@order / 2.0).ceil 
 	end
 
 	def insert(key, bucket)
@@ -24,6 +26,15 @@ class Node
 		end
 			
 		@parent || self
+	end
+
+	def delete(key)
+		if @keys.include? key
+			_delete key
+		elsif internal?
+			pos = find_pos key
+			@children[pos].delete(key)
+		end
 	end
 
 	def search(key)
@@ -53,12 +64,145 @@ class Node
 		_insert(key, bucket, right_child)
 	end
 
+	def take(key)
+		@keys.delete key
+		bucket = @buckets.delete key	
+		deficient_node = if rebalance?
+							self
+						 else 
+							nil 
+						 end
+
+		return key, bucket, deficient_node
+	end
+
+	def take_first
+		first_key = @keys.first
+		return take first_key
+	end
+
 	def take_last
 		last_key = @keys.last
-		@keys.delete last_key
+		return take last_key
+	end
 
-		last_bucket = @buckets.delete last_key
-		return last_key, last_bucket
+	def take_tree_max
+		if not internal?
+			return take_last
+		else
+			return @children.last.take_tree_max
+		end
+	end
+
+	def take_lesser(child)
+		pos = @children.find_index child
+		
+		if 0 < pos
+			key = @keys[pos-1]
+			return take key
+		else
+			raise "Could not find separator"
+		end
+	end
+
+	def take_greater(child)
+		pos = @children.find_index child
+		
+		if pos < @keys.length
+			key = @keys[pos]
+			return take key
+		else
+			raise "Could not find separator"
+		end
+	end
+
+	def surrender
+		return @keys, @children, @buckets
+	end
+
+	def has_surplus?
+		@children.length > @minimum
+	end
+
+	def rebalance?
+		@keys.length < @minimum - 1
+	end
+
+	def get_left_and_right(child)
+		pos = @children.find_index child	
+	
+		left = nil
+		right = nil
+	
+		if 0 < pos
+			left = @children[pos-1]
+		end
+
+		if pos < @children.length - 1
+			right = @children[pos+1]
+		end
+
+		return left, right
+	end
+
+	def __insert(key, bucket)
+		pos = find_pos key	
+
+		@keys.insert(pos, key)
+		@buckets.put(key, bucket)
+	end
+
+	def steal(other)
+		keys, children, buckets = other.surrender
+		@keys.concat keys
+		@children.concat children
+		@buckets = @buckets.concat buckets
+	end
+
+	def rebalance
+		left_sibling, right_sibling = get_siblings
+		if not right_sibling.nil? and right_sibling.has_surplus?
+			parent_key, parent_bucket = take_greater_key_from_parent
+			__insert parent_key, parent_bucket
+			
+			sibling_key, sibling_bucket = right_sibling.take_first
+			@parent.__insert sibling_key, sibling_bucket
+		elsif not left_sibling.nil? and left_sibling.has_surplus?
+			parent_key, parent_bucket = take_lesser_key_from_parent
+			__insert parent_key, parent_bucket
+
+			sibling_key, sibling_bucket = left_sibling.take_last
+			@parent.__insert sibling_key, sibling_bucket
+		else 
+			left = left_sibling ? left_sibling : self
+			right = left_sibling ? self : right_sibling
+			parent_key, parent_value = left_sibling ? 
+										take_lesser_key_from_parent : 
+										take_greater_key_from_parent
+
+			left.__insert parent_key, parent_value
+			left.steal(right)
+
+			if @parent.root? and @parent.empty?
+				@parent = nil
+			elsif @parent.root?
+				@parent.rebalance
+			end
+		end	
+
+		find_parent
+	end
+
+	def find_parent
+		@parent ? @parent.find_parent : self
+	end
+
+	def root?
+		@parent.nil?
+	end
+
+	def empty?
+		@keys.empty?
 	end
 
 	private
@@ -105,6 +249,37 @@ class Node
 		end
 
 		@parent || self
+	end
+
+	def get_siblings
+		@parent.get_left_and_right self
+	end
+
+	def take_greater_key_from_parent
+		@parent.take_greater self
+	end
+
+	def take_lesser_key_from_parent
+		@parent.take_lesser self
+	end
+
+	def _delete(key)
+		pos = find_pos key
+
+		_, _, deficient_node = take key
+
+		if internal?
+			binding.pry
+			left_subtree = @children[pos]
+			key, bucket, deficient_node = left_subtree.take_tree_max
+			__insert(key, bucket)
+		end
+
+		if deficient_node
+			return deficient_node.rebalance
+		end
+
+		find_parent
 	end
 
 	def internal?

@@ -30,6 +30,15 @@ class BucketCollection
 	def delete(key)
 		@buckets.delete key
 	end
+
+	def concat(buckets)
+		# something crazy i did to avoid exposing the underlying hash
+		if buckets.class == BucketCollection
+			buckets.concat(@buckets)
+		else
+			BucketCollection.new @buckets.merge(buckets)
+		end
+	end
 end
 
 

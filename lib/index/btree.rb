@@ -27,4 +27,14 @@ class BTree
 	def search(key)
 		@root.search(key)
 	end
+
+	def update(key, value)
+		
+	end
+
+	def delete(key)
+		if not @root.nil?
+			@root = @root.delete key
+		end
+	end
 end
