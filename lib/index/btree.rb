@@ -1,12 +1,57 @@
 class Bucket
-	def initialize()
+	def initialize(values = [])
+		@values = values
+	end
+
+	def put(value)
+		@values.push(value)
+	end
+
+	def concat(bucket)
+		@values.concat bucket.to_ary
+	end
+
+	def to_ary
+		Array.new @values	# for immutability
+	end
+end
+
+class BucketCollection
+	def initialize(buckets = {})
+		@buckets = buckets
+	end
+
+	def include?(key)
+		@buckets.include? key
+	end
+
+	def put(key, bucket)
+		raise "Not a bucket" unless bucket.class == Bucket
+
+		if include? key
+			@buckets[key].concat bucket
+		else
+			@buckets[key] = bucket
+		end
+	end
+
+	def get(key)
+		@buckets[key]
+	end
+
+	def values_at(*keys)
+		BucketCollection.new @buckets.select { |key, bucket| keys.include? key }
+	end
+
+	def delete(key)
+		@buckets.delete key
 	end
 end
 
 class Node
 	attr_accessor :parent
 
-	def initialize(order, children=[nil], keys=[], buckets={})
+	def initialize(order, children=[nil], keys=[], buckets=BucketCollection.new)
 		@order = order
 		@children = children
 		@keys = keys
@@ -15,15 +60,15 @@ class Node
 		@children.each { |child| child.parent = self unless child.nil? }
 	end
 
-	def insert(key, value)
+	def insert(key, bucket)
 		if @buckets.include? key
-			@buckets[key].push(value)
+			@buckets.put(key, bucket)
 		elsif not internal?
-			_insert(key, [value])
+			_insert(key, bucket)
 		else
 			child_pos = find_pos key
 			child = @children[child_pos]
-			child.insert key, value
+			child.insert(key, bucket)
 		end
 			
 		@parent || self
@@ -31,12 +76,12 @@ class Node
 
 	def search(key)
 		if @keys.include? key
-			@buckets[key]
+			@buckets.get key
 		elsif internal?
 			pos = find_pos key
 			@children[pos].search(key)
 		else
-			nil
+			Bucket.new
 		end
 	end
 
@@ -45,7 +90,7 @@ class Node
 			if internal?
 				@children[i].print(level + 1)
 			end
-			puts "\t" * level + "#{key} #{@buckets[key]}"
+			puts "\t" * level + "#{key} #{@buckets.get key}"
 		end
 		if internal?
 			@children.last.print(level + 1)
@@ -70,7 +115,7 @@ class Node
 
 		right_keys = @keys.slice(mid, @keys.length)
 		right_children = @children.slice(mid, @children.length)
-		right_buckets = @buckets.select { |key, value| right_keys.include? key }
+		right_buckets = @buckets.values_at(*right_keys)
 		right = Node.new(@order, 
 						right_children,
 						right_keys, 
@@ -78,7 +123,7 @@ class Node
 
 		@keys = @keys.slice(0, mid)
 		@children = @children.slice(0, mid)
-		@buckets = @buckets.select { |key, value| @keys.include? key }
+		@buckets = @buckets.values_at(*@keys)
 		left = self
 
 		return left, right
@@ -89,7 +134,7 @@ class Node
 
 		@keys.insert(pos, key)
 		@children.insert(pos+1, child)
-		@buckets[key] = bucket
+		@buckets.put(key, bucket)
 
 		if not child.nil?
 			child.parent = self
@@ -142,7 +187,11 @@ class BTree
 		if @root.nil?
 			@root = Node.new(@order)
 		end	
-		@root = @root.insert key, value
+		
+		bucket = Bucket.new
+		bucket.put value
+
+		@root = @root.insert key, bucket
 		print
 	end
 
