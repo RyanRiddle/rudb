@@ -93,7 +93,6 @@ class Node
 			left, right = split
 
 			if @parent.nil?
-				#binding.pry
 				@parent = Node.new(@key_type, @order, [left])
 			end
 
@@ -107,6 +106,7 @@ class Node
 
 	def internal?
 		raise "bad kid!" unless @children.all? { |child| child.nil? } or @children.all? { |child| not child.nil? }
+
 		not @children.empty? and not @children.any? { |child| child.nil? }
 	end
 
