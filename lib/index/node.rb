@@ -1,5 +1,4 @@
 require_relative 'bucket_collection'
-require 'pry'
 
 class Node
 	attr_accessor :parent
@@ -166,6 +165,10 @@ class Node
 		end
 	end
 
+	def disown child
+		@children.delete child
+	end
+
 	def rebalance
 		left_sibling, right_sibling = get_siblings
 		if not right_sibling.nil? and right_sibling.has_surplus?
@@ -189,6 +192,7 @@ class Node
 
 			left.__insert parent_key, parent_value
 			left.steal(right)
+			@parent.disown right
 
 			if left.parent.root? and left.parent.empty?
 				left.parent = nil
