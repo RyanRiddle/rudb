@@ -6,18 +6,18 @@ end
 class Node
 	attr_accessor :parent
 
-	def initialize(order, children=[nil], keys=[], records={})
+	def initialize(order, children=[nil], keys=[], buckets={})
 		@order = order
 		@children = children
 		@keys = keys
-		@records = records
+		@buckets = buckets
 
 		@children.each { |child| child.parent = self unless child.nil? }
 	end
 
 	def insert(key, value)
-		if @records.include? key
-			@records[key].push(value)
+		if @buckets.include? key
+			@buckets[key].push(value)
 		elsif not internal?
 			_insert(key, [value])
 		else
@@ -31,7 +31,7 @@ class Node
 
 	def search(key)
 		if @keys.include? key
-			@records[key]
+			@buckets[key]
 		elsif internal?
 			pos = find_pos key
 			@children[pos].search(key)
@@ -45,7 +45,7 @@ class Node
 			if internal?
 				@children[i].print(level + 1)
 			end
-			puts "\t" * level + "#{key} #{@records[key]}"
+			puts "\t" * level + "#{key} #{@buckets[key]}"
 		end
 		if internal?
 			@children.last.print(level + 1)
@@ -60,7 +60,7 @@ class Node
 		last_key = @keys.last
 		@keys.delete last_key
 
-		last_bucket = @records.delete last_key
+		last_bucket = @buckets.delete last_key
 		return last_key, last_bucket
 	end
 
@@ -70,15 +70,15 @@ class Node
 
 		right_keys = @keys.slice(mid, @keys.length)
 		right_children = @children.slice(mid, @children.length)
-		right_records = @records.select { |key, value| right_keys.include? key }
+		right_buckets = @buckets.select { |key, value| right_keys.include? key }
 		right = Node.new(@order, 
 						right_children,
 						right_keys, 
-						right_records)
+						right_buckets)
 
 		@keys = @keys.slice(0, mid)
 		@children = @children.slice(0, mid)
-		@records = @records.select { |key, value| @keys.include? key }
+		@buckets = @buckets.select { |key, value| @keys.include? key }
 		left = self
 
 		return left, right
@@ -89,7 +89,7 @@ class Node
 
 		@keys.insert(pos, key)
 		@children.insert(pos+1, child)
-		@records[key] = bucket
+		@buckets[key] = bucket
 
 		if not child.nil?
 			child.parent = self
