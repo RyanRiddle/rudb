@@ -1,4 +1,4 @@
-require_relative 'query'
+require_relative '../statement/statement'
 require_relative 'record'
 
 class Table
@@ -48,8 +48,8 @@ class Table
 		File.write(@filename, "1", offset)
 	end
 
-	def query
-		Query.new self, @db
+	def statement
+		Statement.new self, @db
 	end
 
 	def cleanup

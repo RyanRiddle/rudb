@@ -35,6 +35,10 @@ class Database
 		end
 	end
 
+	def begin_transaction
+		Transaction.new @directory			
+	end
+
 	private
 	def getfiles
 		Dir.foreach(@directory).select { |file| file != ".." and file != "." }
