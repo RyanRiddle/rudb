@@ -48,9 +48,11 @@ class Database
     end
 
     def rollback_failed_transactions
-        journal_files = get_journal_files
+        journal_files = get_journal_files.collect do |filename|
+            File.join @directory, filename
+        end
         if not journal_files.empty?
-            journal = RollbackJournal.new journal_files
+            journal = RollbackJournal.new *journal_files
             failed_transaction = Transaction.new journal
             failed_transaction.rollback
         end

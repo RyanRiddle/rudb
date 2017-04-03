@@ -1,4 +1,5 @@
 class Transaction
+    attr_reader :rollback_mechanism
 	def initialize(rollback_mechanism)
 		@commands = []
         @rollback_mechanism = rollback_mechanism

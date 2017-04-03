@@ -1,5 +1,5 @@
 class RollbackJournal
-    def initialize(journal_files=[])
+    def initialize(*journal_files)
         @journal_files = journal_files
     end
 
@@ -13,7 +13,7 @@ class RollbackJournal
 
     def rollback
         @journal_files.each do |journal_file|
-            table_file = f.rpartition "."
+            table_file = journal_file.rpartition(".")[0]
             File.rename(journal_file, table_file)
         end
     end

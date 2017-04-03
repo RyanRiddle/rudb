@@ -2,7 +2,7 @@ require_relative 'spec_helper'
 
 class TransactionTests < Test::Unit::TestCase
     def test_rollback_journal
-        table = create_db_with_table "nyc", "restaurant"
+        table = create_db_with_table "one", "restaurant"
 
         command = table.statement.insert(name: "Black Burger")
         commands = [command]
@@ -16,11 +16,47 @@ class TransactionTests < Test::Unit::TestCase
 
         assert_block { not File.exist? "#{table.filename}.journal" }
 
-        delete_tables_and_destroy_db "nyc", "restaurant"
+        delete_tables_and_destroy_db "one", "restaurant"
+    end
+
+    def test_failed_transaction
+        table = create_db_with_table "two", "restaurant"
+
+        table.statement.insert(name: "one lonely restaurant").execute
+
+        assert table.statement.top(100).length == 1
+
+        commands = 100_000.times.map do
+            table.statement.insert(name: "another garbage row")
+        end
+
+        rj = RollbackJournal.new
+        transaction = Transaction.new rj
+        commands.each { |c| transaction.add c }
+
+        thread = Thread.new { transaction.commit }
+        
+        while not File.exist? "#{commands.last.table.filename}.journal"
+            # make sure the commit thread is running
+            puts "waiting for transaction to start"
+        end
+    
+        Thread.kill thread
+
+        # "restart" the database
+        db = Database.new "two", "/tmp"
+        table = db.get "restaurant"
+
+        result_set = table.statement.top 1000
+        assert_block do 
+            result_set.length == 1
+        end
+
+        delete_tables_and_destroy_db "two", "restaurant"
     end
 
     def test_successful_transaction
-        table = create_db_with_table "nyc", "restaurant"
+        table = create_db_with_table "three", "restaurant"
 
         commands = [table.statement.
                         insert(name: "Black Burger", type: "burgers"),
@@ -41,7 +77,6 @@ class TransactionTests < Test::Unit::TestCase
             result_set[0][1] == "buns"
         end
 
-        sleep 1     # you should really fix this
-        delete_tables_and_destroy_db "nyc", "restaurant"
+        delete_tables_and_destroy_db "three", "restaurant"
     end
 end
