@@ -1,4 +1,6 @@
 require_relative 'table'
+require_relative '../transaction/transaction.rb'
+require_relative '../transaction/rollback_journal.rb'
 
 class Database
 	def initialize(name, dir=nil)
@@ -13,10 +15,8 @@ class Database
 		if not Dir.exists? @directory
 			Dir.mkdir @directory
 		else
-			getfiles.each do |file|
-				filename = file.split(".")[0]
-				@tables[filename] = Table.new filename, @directory, self
-			end
+            load_tables
+            rollback_failed_transactions
 		end
 	end
 
@@ -40,7 +40,31 @@ class Database
 	end
 
 	private
-	def getfiles
-		Dir.foreach(@directory).select { |file| file != ".." and file != "." }
+    def load_tables
+        get_table_files.each do |file|
+            filename = file.split(".")[0]
+            @tables[filename] = Table.new filename, @directory, self
+        end
+    end
+
+    def rollback_failed_transactions
+        journal_files = get_journal_files
+        if not journal_files.empty?
+            journal = RollbackJournal.new journal_files
+            failed_transaction = Transaction.new journal
+            failed_transaction.rollback
+        end
+    end
+    
+	def get_table_files
+		Dir.foreach(@directory).select do |filename|
+            filename.rpartition(".").last == "db"
+        end
 	end
+
+    def get_journal_files
+        Dir.foreach(@directory).select do |filename|
+            filename.rpartition(".").last == "journal"
+        end
+    end
 end

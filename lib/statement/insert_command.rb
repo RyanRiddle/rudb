@@ -1,4 +1,6 @@
 class InsertCommand
+    attr_reader :table
+
     def initialize(table, hash)
         @table = table
         @hash = hash

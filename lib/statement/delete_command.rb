@@ -1,4 +1,6 @@
 class DeleteCommand
+    attr_reader :table
+
     def initialize(record_enumerator, table)
         @record_enumerator = record_enumerator
         @table = table

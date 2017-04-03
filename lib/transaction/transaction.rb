@@ -1,7 +1,7 @@
 class Transaction
-	def initialize(db_dir)
+	def initialize(rollback_mechanism)
 		@commands = []
-		@write_ahead_log = File.join(db_dir, "transaction.wal")
+        @rollback_mechanism = rollback_mechanism
 	end
 
 	def add(command)
@@ -9,31 +9,20 @@ class Transaction
 	end
 
 	def commit
-		output_wal()
+        @rollback_mechanism.prep(@commands)
         execute_commands()
-        delete_wal()
+        @rollback_mechanism.discard()
 	end
 
-	def output_wal
-		File.open(@write_ahead_log, "w") do |f|
-			@commands.each do |command|
-				command.render do |change|
-                    f.puts change
-                end
-			end
-			
-			f.puts "LOG END"
-		end
-	end
-
+    def rollback
+        @rollback_mechanism.rollback()
+    end
+   
+    private 
     def execute_commands
         @commands.each do |command|
             command.execute()
         end
-    end
-
-    def delete_wal
-        File.delete @write_ahead_log
     end
 end
 

@@ -1,8 +1,11 @@
 class UpdateCommand
-    def initialize(record_enumerator, table, set_clause)
+    attr_reader :table
+
+    def initialize(record_enumerator, table, set_clause, db)
         @record_enumerator = record_enumerator
         @table = table
         @set_clause = set_clause
+        @db = db
     end
 
     def execute

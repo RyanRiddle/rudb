@@ -36,7 +36,7 @@ class Statement
 	end
 
 	def update(clause = {})
-        UpdateCommand.new(@record_enumerator, @table, clause)
+        UpdateCommand.new(@record_enumerator, @table, clause, @db)
 	end
 
 	def delete
