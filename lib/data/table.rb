@@ -1,4 +1,5 @@
 require_relative '../statement/statement'
+require_relative '../concurrency/read_write_lock'
 require_relative 'record'
 
 class Table
@@ -60,9 +61,9 @@ class Table
 				tmp_tbl.write record
 			end		
 
-			@@file_mutex.synchronize {
+            ReadWriteLock.write @@file_mutex do
 				File.rename(tmp_tbl.filename, @filename)
-			}
+			end
 
 			@db.drop_table "tmp_tbl"
 		end
@@ -70,7 +71,8 @@ class Table
 
 	def each_record
 		e = Enumerator.new do |y|
-			@@file_mutex.synchronize {
+            ReadWriteLock.read @@file_mutex do
+            #@@file_mutex.synchronize do
 				File.open(@filename, "r") do |f|
 					until f.eof?
 						offset = f.tell
@@ -78,13 +80,14 @@ class Table
 						deleted = header.split[0] != "0"
 						length = header.split[1].to_i
 						serialized_record = f.read length
+                        #f.read_nonblock 100
 						if not deleted
 							record = Record::read serialized_record
 							y.yield record, offset
 						end	
 					end
 				end
-			}
+			end
 		end
 
 		if not block_given?

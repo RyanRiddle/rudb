@@ -19,7 +19,7 @@ class DatabaseTest < Test::Unit::TestCase
         result_set = table.statement.top 1
         assert result_set.empty?
 
-        sleep 1 # i think i need to get a lock before dropping a table
+        #sleep 1 # i think i need to get a lock before dropping a table
         delete_tables_and_destroy_db "nyc", "museum"
     end
 
@@ -37,7 +37,7 @@ class DatabaseTest < Test::Unit::TestCase
         result_set = table.statement.where(visited: true).top 10
         assert result_set.length == 2
 
-        sleep 1
+        #sleep 1
         delete_tables_and_destroy_db "nyc", "museum"
     end
 end

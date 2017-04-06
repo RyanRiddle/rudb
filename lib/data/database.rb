@@ -47,26 +47,27 @@ class Database
         end
     end
 
-    def rollback_failed_transactions
-        journal_files = get_journal_files.collect do |filename|
-            File.join @directory, filename
-        end
-        if not journal_files.empty?
-            journal = RollbackJournal.new *journal_files
-            failed_transaction = Transaction.new journal
-            failed_transaction.rollback
-        end
-    end
-    
 	def get_table_files
 		Dir.foreach(@directory).select do |filename|
             filename.rpartition(".").last == "db"
         end
 	end
 
-    def get_journal_files
-        Dir.foreach(@directory).select do |filename|
+    def rollback_failed_transactions
+        journal_files = find_journal_files
+
+        if not journal_files.empty?
+            journal = RollbackJournal.new *journal_files
+            failed_transaction = Transaction.new journal
+            failed_transaction.rollback
+        end
+    end
+
+    def find_journal_files
+        journal_files = Dir.foreach(@directory).select do |filename|
             filename.rpartition(".").last == "journal"
         end
+
+        journal_files.collect { |filename| File.join @directory, filename }
     end
 end
