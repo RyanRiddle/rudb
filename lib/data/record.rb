@@ -1,7 +1,9 @@
 require 'date'
 
 class Record
-	def initialize(hash)
+	def initialize(creator, updater, hash)
+        @creator = creator
+        @updater = updater
 		@hash = hash
 	end
 
@@ -20,11 +22,11 @@ class Record
 	end
 
 	def serialize
-		Marshal.dump @hash
+		Marshal.dump [@creator, @updater, @hash]
 	end
 
 	def self.read(marshaled_record)
-		Record.new(Marshal.load marshaled_record)
+		Record.new(*(Marshal.load marshaled_record))
 	end
 end
 

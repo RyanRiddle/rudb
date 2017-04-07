@@ -1,6 +1,7 @@
 require_relative '../statement/statement'
 require_relative '../concurrency/read_write_lock'
 require_relative 'record'
+require 'fcntl'
 
 class Table
 	attr_reader :filename	# used to copy from one table to another
@@ -71,23 +72,20 @@ class Table
 
 	def each_record
 		e = Enumerator.new do |y|
-            ReadWriteLock.read @@file_mutex do
-            #@@file_mutex.synchronize do
-				File.open(@filename, "r") do |f|
-					until f.eof?
-						offset = f.tell
-						header = f.readline
-						deleted = header.split[0] != "0"
-						length = header.split[1].to_i
-						serialized_record = f.read length
-                        #f.read_nonblock 100
-						if not deleted
-							record = Record::read serialized_record
-							y.yield record, offset
-						end	
-					end
-				end
-			end
+            File.open(@filename, "r") do |f|
+                f.fcntl(Fcntl::F_SETLKW, Fcntl::O_RDLCK)
+                until f.eof?
+                    offset = f.tell
+                    header = f.readline
+                    deleted = header.split[0] != "0"
+                    length = header.split[1].to_i
+                    serialized_record = f.read length
+                    if not deleted
+                        record = Record::read serialized_record
+                        y.yield record, offset
+                    end	
+                end
+            end
 		end
 
 		if not block_given?
