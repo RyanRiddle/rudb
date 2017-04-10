@@ -1,7 +1,5 @@
 require_relative '../statement/statement'
-require_relative '../concurrency/read_write_lock'
 require_relative 'record'
-require 'fcntl'
 
 class Table
 	attr_reader :filename	# used to copy from one table to another
@@ -26,13 +24,16 @@ class Table
 		end	
 	end
 
-	def insert(row)
+	def insert(row, transaction_id)
 		# This code smells
+=begin
 		if row.class == Record
 			record = row
 		else
-			record = Record.new row
+			record = Record.new transaction_id, 0, row
 		end
+=end
+        record = Record.new transaction_id, 0, row
 
 		write record
 	end
@@ -40,14 +41,29 @@ class Table
 	def write(record)
 		File.open(@filename, "a") do |f|
 			serialized_record = record.serialize
-			header = "0 #{serialized_record.length}"
+			header = serialized_record.length
 			f.puts header
 			f.write serialized_record
 		end
 	end
 
-	def mark(offset)	# marks record for deletion
-		File.write(@filename, "1", offset)
+	def mark(offset, transaction_id)	# marks record deleted
+        told = nil
+        record = nil
+
+        File.open(@filename, "r") do |f|
+            f.seek(offset)
+            length = f.readline.to_i
+
+            told = f.tell
+
+            serialized_record = f.read length
+            record = Record.read serialized_record
+
+            record.updater = transaction_id
+        end
+           
+        File.write @filename, record.serialize, told
 	end
 
 	def statement
@@ -73,15 +89,13 @@ class Table
 	def each_record
 		e = Enumerator.new do |y|
             File.open(@filename, "r") do |f|
-                f.fcntl(Fcntl::F_SETLKW, Fcntl::O_RDLCK)
                 until f.eof?
                     offset = f.tell
                     header = f.readline
-                    deleted = header.split[0] != "0"
-                    length = header.split[1].to_i
+                    length = header.to_i
                     serialized_record = f.read length
-                    if not deleted
-                        record = Record::read serialized_record
+                    record = Record::read serialized_record
+                    if not record.deleted?
                         y.yield record, offset
                     end	
                 end

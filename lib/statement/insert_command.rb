@@ -6,8 +6,8 @@ class InsertCommand
         @hash = hash
     end
 
-    def execute
-        @table.insert(@hash)
+    def execute(transaction_id)
+        @table.insert(@hash, transaction_id)
     end
 
     def render

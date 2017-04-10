@@ -6,9 +6,9 @@ class DeleteCommand
         @table = table
     end
 
-    def execute
+    def execute(transaction_id)
         @record_enumerator.each do |record, offset|
-            @table.mark offset
+            @table.mark(offset, transaction_id)
         end
 
         @table.cleanup

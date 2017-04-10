@@ -35,10 +35,6 @@ class Database
 		end
 	end
 
-	def begin_transaction
-		Transaction.new @directory			
-	end
-
 	private
     def load_tables
         get_table_files.each do |file|

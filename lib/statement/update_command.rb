@@ -8,14 +8,14 @@ class UpdateCommand
         @db = db
     end
 
-    def execute
+    def execute(transaction_id)
 		tmp_tbl = @db.create_table("tmp_tbl")
 
 		updates = @record_enumerator.each do |record, offset|
-			@table.mark(offset)
+			@table.mark(offset, transaction_id)
 		
 			record.set(@set_clause)
-			tmp_tbl.insert record
+			tmp_tbl.insert(record, transaction_id)
 		end		
 
 		@table.concat tmp_tbl

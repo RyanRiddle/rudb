@@ -9,9 +9,9 @@ class Transaction
 		@commands.push(command)
 	end
 
-	def commit
+	def commit(transaction_id)
         @rollback_mechanism.prep(@commands)
-        execute_commands()
+        execute_commands(transaction_id)
         @rollback_mechanism.discard()
 	end
 
@@ -20,9 +20,9 @@ class Transaction
     end
    
     private 
-    def execute_commands
+    def execute_commands(transaction_id)
         @commands.each do |command|
-            command.execute()
+            command.execute(transaction_id)
         end
     end
 end
