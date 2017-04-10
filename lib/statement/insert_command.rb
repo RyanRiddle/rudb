@@ -1,13 +1,14 @@
 class InsertCommand
     attr_reader :table
 
-    def initialize(table, hash)
+    def initialize(table, hash, transaction_id)
         @table = table
         @hash = hash
+        @transaction_id = transaction_id
     end
 
-    def execute(transaction_id)
-        @table.insert(@hash, transaction_id)
+    def execute
+        @table.insert(@hash, @transaction_id)
     end
 
     def render

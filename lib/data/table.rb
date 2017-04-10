@@ -66,11 +66,13 @@ class Table
         File.write @filename, record.serialize, told
 	end
 
-	def statement
-		Statement.new self, @db
+	def statement transaction_id
+		Statement.new self, @db, transaction_id
 	end
 
 	def cleanup
+        # commenting out until i have mvcc implemented
+=begin
 		Thread.new do 
 			tmp_tbl = @db.create_table "tmp_tbl"
 
@@ -84,9 +86,10 @@ class Table
 
 			@db.drop_table "tmp_tbl"
 		end
+=end
 	end
 
-	def each_record
+	def each_record(transaction_id)
 		e = Enumerator.new do |y|
             File.open(@filename, "r") do |f|
                 until f.eof?
@@ -95,7 +98,7 @@ class Table
                     length = header.to_i
                     serialized_record = f.read length
                     record = Record::read serialized_record
-                    if not record.deleted?
+                    if record.in_scope_for? transaction_id
                         y.yield record, offset
                     end	
                 end

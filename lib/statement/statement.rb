@@ -2,48 +2,41 @@ require_relative '../data/record'
 require_relative 'delete_command'
 require_relative 'update_command'
 require_relative 'insert_command'
+require_relative 'select_statement'
 
 class Statement
-	def initialize(table, db)
+	def initialize(table, db, transaction_id)
 		@table = table
 		@db = db
+        @transaction_id = transaction_id
 
-		@record_enumerator = table.each_record.lazy
+		@record_enumerator = table.each_record(@transaction_id).lazy
 	end
 
 	def where(clause = {})
-		@record_enumerator = @record_enumerator.select do |record, offset|
+		@record_enumerator = @record_enumerator.select do |record, _|
 			clause.all? do |key, value|
 				record.matches?(key, value)
 			end
 		end
-		self
+
+		return self
 	end
 
 	def select(*cols)
-		@record_enumerator = @record_enumerator.map do |record, offset|
-			record.values_at *cols
-		end
-		self		
-	end
-
-	def top(num=nil)
-		if num.nil?
-			return @record_enumerator.force()
-		end
-
-		@record_enumerator.take(num).force()
-	end
+        SelectStatement.new(@record_enumerator, @table, cols, @transaction_id)
+    end
 
 	def update(clause = {})
-        UpdateCommand.new(@record_enumerator, @table, clause, @db)
+        UpdateCommand.new(@record_enumerator, @table, clause, @db, 
+                            @transaction_id)
 	end
 
 	def delete
-        DeleteCommand.new(@record_enumerator, @table)
+        DeleteCommand.new(@record_enumerator, @table, @transaction_id)
 	end
     
     def insert(hash)
-        InsertCommand.new(@table, hash)
+        InsertCommand.new(@table, hash, @transaction_id)
     end
 end

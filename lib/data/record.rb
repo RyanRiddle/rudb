@@ -3,6 +3,8 @@ require_relative '../util/transaction_id'
 require 'date'
 
 class Record
+    attr_accessor :updater
+
 	def initialize(creator, updater, hash)
         @creator = creator
         @updater = updater
@@ -17,8 +19,9 @@ class Record
 		@hash[key] == value
 	end
 
-    def deleted?
-        @updater != 0
+    def in_scope_for? transaction_id
+        not deleted? transaction_id and 
+            @creator <= transaction_id
     end
 
 	def set(clause = {})
@@ -43,5 +46,11 @@ class Record
         hash    = array[2]
 		Record.new creator, updater, hash
 	end
+
+    private
+    def deleted? transaction_id
+        0 < @updater and @updater <= transaction_id
+    end
+    
 end
 

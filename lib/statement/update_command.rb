@@ -1,21 +1,22 @@
 class UpdateCommand
     attr_reader :table
 
-    def initialize(record_enumerator, table, set_clause, db)
+    def initialize(record_enumerator, table, set_clause, db, transaction_id)
         @record_enumerator = record_enumerator
         @table = table
         @set_clause = set_clause
         @db = db
+        @transaction_id = transaction_id
     end
 
-    def execute(transaction_id)
+    def execute
 		tmp_tbl = @db.create_table("tmp_tbl")
 
 		updates = @record_enumerator.each do |record, offset|
-			@table.mark(offset, transaction_id)
+			@table.mark(offset, @transaction_id)
 		
 			record.set(@set_clause)
-			tmp_tbl.insert(record, transaction_id)
+			tmp_tbl.insert(record, @transaction_id)
 		end		
 
 		@table.concat tmp_tbl
