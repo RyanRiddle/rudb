@@ -10,7 +10,7 @@ class Table
 		@db = db
 		@name = name
 		@filename = File.join(dir, "#{@name}.db")
-		f = File.open @filename, "w"
+		f = File.open @filename, "r+"   # r+ because we do not want to overwrite
 		f.close
 	end
 
