@@ -2,11 +2,11 @@ require_relative 'rollback_journal'
 
 class Transaction
     attr_reader :rollback_mechanism
-	def initialize(id, commit_log, rollback_mechanism=RollbackJournal.new)
-        @id = id
+	def initialize(db, rollback_mechanism=RollbackJournal.new)
+        @id = db.next_transaction_id
+        @commit_log = db.commit_log
         @rollback_mechanism = rollback_mechanism
 		@commands = []
-        @commit_log = commit_log
 	end
 
 	def add(command)
