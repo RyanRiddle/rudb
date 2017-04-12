@@ -10,17 +10,19 @@ class UpdateCommand
     end
 
     def execute
-		tmp_tbl = @db.create_table("tmp_tbl")
+        table_name = "#{@transaction_id}_tmp_tbl" 
+		tmp_tbl = @db.create_table table_name
 
 		updates = @record_enumerator.each do |record, offset|
-			@table.mark(offset, @transaction_id)
+			@table.mark(record, offset, @transaction_id)
 		
-			record.set(@set_clause)
-			tmp_tbl.insert(record, @transaction_id)
+            new_record = Record.copy @transaction_id, record
+			new_record.set @set_clause
+			tmp_tbl.insert new_record
 		end		
 
 		@table.concat tmp_tbl
-		@db.drop_table ("tmp_tbl")
+		@db.drop_table table_name
 
 		@table.cleanup
     end

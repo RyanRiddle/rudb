@@ -1,4 +1,6 @@
 class SelectStatement
+    attr_accessor :table
+
     def initialize(record_enumerator, table, cols, transaction_id)
         @record_enumerator = record_enumerator
         @table = table

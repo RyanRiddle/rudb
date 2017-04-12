@@ -8,7 +8,8 @@ class InsertCommand
     end
 
     def execute
-        @table.insert(@hash, @transaction_id)
+        record = Record.new @transaction_id, @hash
+        @table.insert record
     end
 
     def render

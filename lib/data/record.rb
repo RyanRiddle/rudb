@@ -4,11 +4,24 @@ require 'date'
 
 class Record
     attr_accessor :updater
+    attr_reader :hash
 
-	def initialize(creator, updater, hash)
+	def self.read(marshaled_record)
+        array = Marshal.load marshaled_record
+        creator = TransactionId.from_eight_byte_string array[0]
+        hash    = array[2]
+        updater = TransactionId.from_eight_byte_string array[1]
+		Record.new creator, hash, updater
+	end
+    
+    def self.copy transaction_id, other
+        Record.new transaction_id, other.hash, 0
+    end
+
+	def initialize(creator, hash, updater=0)
         @creator = creator
-        @updater = updater
 		@hash = hash
+        @updater = updater
 	end
 
 	def values_at(*keys)
@@ -24,6 +37,10 @@ class Record
             @creator <= transaction_id
     end
 
+    def deleted_by
+        @updater
+    end
+
 	def set(clause = {})
 		clause.each do |key, value|
 			@hash[key] = value
@@ -37,14 +54,6 @@ class Record
 		Marshal.dump([EightByteString.from_transaction_id(@creator),
                       EightByteString.from_transaction_id(@updater),
                       @hash])
-	end
-
-	def self.read(marshaled_record)
-        array = Marshal.load marshaled_record
-        creator = TransactionId.from_eight_byte_string array[0]
-        updater = TransactionId.from_eight_byte_string array[1]
-        hash    = array[2]
-		Record.new creator, updater, hash
 	end
 
     private

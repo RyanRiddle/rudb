@@ -9,7 +9,6 @@ class Statement
 		@table = table
 		@db = db
         @transaction_id = transaction_id
-
 		@record_enumerator = table.each_record(@transaction_id).lazy
 	end
 

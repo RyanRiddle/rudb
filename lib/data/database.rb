@@ -1,15 +1,19 @@
 require_relative 'table'
 require_relative '../transaction/transaction.rb'
 require_relative '../transaction/rollback_journal.rb'
+require_relative '../transaction/id_generator.rb'
+require_relative '../transaction/commit_log'
 
 class Database
-	def initialize(name, dir=nil)
+    attr_reader :commit_log
+
+	def initialize(name, dir)
 		@name = name
-		@directory = if dir.nil?
-			name
-		else
-			File.join(dir, name)
-		end
+		@directory = File.join(dir, name)
+
+        @transaction_id_generator = IdGenerator.new
+        @generator_mutex = Mutex.new
+        @commit_log = CommitLog.new
 
 		@tables = {}
 		if not Dir.exists? @directory
@@ -35,6 +39,12 @@ class Database
 		end
 	end
 
+    def next_transaction_id
+        @generator_mutex.synchronize do
+            @transaction_id_generator.next 
+        end
+    end
+
 	private
     def load_tables
         get_table_files.each do |file|
@@ -54,7 +64,7 @@ class Database
 
         if not journal_files.empty?
             journal = RollbackJournal.new *journal_files
-            failed_transaction = Transaction.new journal
+            failed_transaction = Transaction.new(0, @commit_log, journal)
             failed_transaction.rollback
         end
     end
