@@ -1,11 +1,18 @@
 require_relative '../util/transaction_id'
 
 class IdGenerator
-    def initialize
-        @range = (1..MAX_TRANSACTION_ID).each
+    def initialize last_id
+        @next_id = last_id + 1
     end
 
     def next
-        @range.next
+        # do this because Enumerators are not thread safe
+
+        if @next_id > MAX_TRANSACTION_ID
+            raise "Out of transaction ids"
+        end
+        
+        @next_id += 1 
+        @next_id - 1
     end
 end

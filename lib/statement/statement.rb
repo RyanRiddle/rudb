@@ -5,11 +5,11 @@ require_relative 'insert_command'
 require_relative 'select_statement'
 
 class Statement
-	def initialize(table, transaction_id)
+	def initialize(table, transaction)
 		@table = table
 		@db = table.db
-        @transaction_id = transaction_id
-		@record_enumerator = table.each_record(@transaction_id).lazy
+        @transaction = transaction
+		@record_enumerator = table.each_record(@transaction).lazy
 	end
 
 	def where(clause = {})
@@ -23,19 +23,19 @@ class Statement
 	end
 
 	def select(*cols)
-        SelectStatement.new(@record_enumerator, @table, cols, @transaction_id)
+        SelectStatement.new(@record_enumerator, @table, cols, @transaction.id)
     end
 
 	def update(clause = {})
         UpdateCommand.new(@record_enumerator, @table, clause, @db, 
-                            @transaction_id)
+                            @transaction.id)
 	end
 
 	def delete
-        DeleteCommand.new(@record_enumerator, @table, @transaction_id)
+        DeleteCommand.new(@record_enumerator, @table, @transaction.id)
 	end
     
     def insert(hash)
-        InsertCommand.new(@table, hash, @transaction_id)
+        InsertCommand.new(@table, hash, @transaction.id)
     end
 end

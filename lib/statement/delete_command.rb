@@ -8,11 +8,12 @@ class DeleteCommand
     end
 
     def execute
-        @record_enumerator.each do |record, offset|
+        @record_enumerator.map do |record, offset|
             @table.mark(record, offset, @transaction_id)
+            @table.get_condition_variable offset
         end
 
-        @table.cleanup
+        #@table.cleanup
     end
 
     def render

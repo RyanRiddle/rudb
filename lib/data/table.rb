@@ -8,10 +8,9 @@ class Table
 	attr_reader :filename	# used to copy from one table to another
     attr_reader :db
 
-	def initialize(name, dir, db)
+	def initialize(filename, db)
 		@db = db
-		@name = name
-		@filename = File.join(dir, "#{@name}.db")
+		@filename = filename
         
         create_file_if_necessary
         create_synchronization_primitives
@@ -58,11 +57,12 @@ class Table
 
             if commit_log.committed? deleter_id
                 puts "too late"
-                return TOO_LATE
+                cv.signal
+                break TOO_LATE
             end
 
             _mark(offset, transaction_id)
-            cv.signal
+            #cv.signal
         end
 	end
 
@@ -85,7 +85,7 @@ class Table
 =end
 	end
 
-	def each_record(transaction_id)
+	def each_record(transaction)
 		e = Enumerator.new do |y|
             File.open(@filename, "r") do |f|
                 until f.eof?
@@ -94,7 +94,7 @@ class Table
                     length = header.to_i
                     serialized_record = f.read length
                     record = Record::read serialized_record
-                    if record.in_scope_for? transaction_id
+                    if transaction.can_see? record
                         y.yield record, offset
                     end	
                 end

@@ -11,9 +11,9 @@ class Database
 		@name = name
 		@directory = File.join(dir, name)
 
-        @transaction_id_generator = IdGenerator.new
+        @commit_log = CommitLog.new(File.join(@directory, "commit.log"))
+        @transaction_id_generator = IdGenerator.new @commit_log.last_assigned_id
         @generator_mutex = Mutex.new
-        @commit_log = CommitLog.new
 
 		@tables = {}
 		if not Dir.exists? @directory
@@ -29,7 +29,8 @@ class Database
 	end	
 
 	def create_table(name)
-		@tables[name] = Table.new name, @directory, self
+        filename = File.join(@directory, "#{name}.db")
+		@tables[name] = Table.new filename, self
 	end
 
 	def drop_table(name)
@@ -45,26 +46,28 @@ class Database
         end
     end
 
-	private
-    def load_tables
-        get_table_files.each do |file|
-            filename = file.split(".")[0]
-            @tables[filename] = Table.new filename, @directory, self
-        end
-    end
-
 	def get_table_files
-		Dir.foreach(@directory).select do |filename|
+		names = Dir.foreach(@directory).select do |filename|
             filename.rpartition(".").last == "db"
         end
+
+        names.collect { |name| File.join(@directory, name) }
 	end
+
+	private
+    def load_tables
+        get_table_files.each do |filename|
+            basename = File.basename(filename, ".db")
+            @tables[basename] = Table.new filename, self
+        end
+    end
 
     def rollback_failed_transactions
         journal_files = find_journal_files
 
         if not journal_files.empty?
-            journal = RollbackJournal.new *journal_files
-            failed_transaction = Transaction.new(0, @commit_log, journal)
+            journal = RollbackJournal.new self, *journal_files
+            failed_transaction = Transaction.new self, journal
             failed_transaction.rollback
         end
     end

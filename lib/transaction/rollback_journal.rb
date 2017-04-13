@@ -1,10 +1,11 @@
 class RollbackJournal
-    def initialize(*journal_files)
+    def initialize(db, *journal_files)
+        @db = db
         @journal_files = journal_files
     end
 
-    def prep(commands)
-        create_journal_files commands
+    def prep
+        @journal_files = create_journal_files
     end
 
     def discard
@@ -16,21 +17,15 @@ class RollbackJournal
     end
 
     private
-    def get_filenames(commands)
-        table_files = commands.collect { |command| command.table.filename }
-        table_files.uniq
-    end
-    
-    def create_journal_files(commands)
-        table_files = get_filenames commands
-        table_files.each do |table_file|
+    def create_journal_files
+        @db.get_table_files.collect do |table_file|
             journal_file = "#{table_file}.journal" 
 
             File.open(journal_file, "w") do |jf|
                 File.copy_stream(table_file, jf)
             end
 
-            @journal_files.push journal_file
+            journal_file
         end
     end
 

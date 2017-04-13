@@ -32,9 +32,9 @@ class Record
 		@hash[key] == value
 	end
 
-    def in_scope_for? transaction_id
-        not deleted? transaction_id and 
-            @creator <= transaction_id
+    def in_scope_for? transaction_id, active_transactions, commit_log
+        exists? transaction_id, active_transactions, commit_log and 
+            not deleted? transaction_id, active_transactions, commit_log
     end
 
     def deleted_by
@@ -57,9 +57,18 @@ class Record
 	end
 
     private
-    def deleted? transaction_id
-        0 < @updater and @updater <= transaction_id
+    def deleted? transaction_id, active_transactions, commit_log
+        @updater == transaction_id or
+            (0 < @updater and @updater < transaction_id and
+            active_transactions.none? { |id| id == @updater } and
+            commit_log.committed? @updater)
     end
-    
+
+    def exists? transaction_id, active_transactions, commit_log
+        @creator == transaction_id or
+            (@creator < transaction_id and
+            active_transactions.none? { |id| id == @creator } and
+            commit_log.committed? @creator)
+    end
 end
 
