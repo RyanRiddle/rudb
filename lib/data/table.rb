@@ -6,6 +6,7 @@ end
 
 class Table
 	attr_reader :filename	# used to copy from one table to another
+    attr_reader :db
 
 	def initialize(name, dir, db)
 		@db = db

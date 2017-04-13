@@ -5,9 +5,9 @@ require_relative 'insert_command'
 require_relative 'select_statement'
 
 class Statement
-	def initialize(table, db, transaction_id)
+	def initialize(table, transaction_id)
 		@table = table
-		@db = db
+		@db = table.db
         @transaction_id = transaction_id
 		@record_enumerator = table.each_record(@transaction_id).lazy
 	end

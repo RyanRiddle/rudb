@@ -6,11 +6,11 @@ class Transaction
         @id = db.next_transaction_id
         @commit_log = db.commit_log
         @rollback_mechanism = rollback_mechanism
-		@commands = []
+        @commands = []
 	end
 
-	def add(command)
-		@commands.push(command)
+	def add(&proc)
+		@commands.push proc.call(@id)
 	end
 
 	def commit
