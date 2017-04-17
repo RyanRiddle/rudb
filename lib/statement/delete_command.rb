@@ -10,9 +10,9 @@ class DeleteCommand
     end
 
     def execute
-        condition_variables = @record_enumerator.map do |record, offset|
+        condition_variables = (@record_enumerator.map do |record, offset|
             @table.mark(record, offset, @transaction_id)
-        end
+        end).force
 
         Result.new(
             Proc.new { condition_variables.each { |cv| cv.signal } },
