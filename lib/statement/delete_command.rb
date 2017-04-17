@@ -1,3 +1,5 @@
+require_relative 'result'
+
 class DeleteCommand
     attr_reader :table
 
@@ -8,10 +10,14 @@ class DeleteCommand
     end
 
     def execute
-        @record_enumerator.map do |record, offset|
+        condition_variables = @record_enumerator.map do |record, offset|
             @table.mark(record, offset, @transaction_id)
-            @table.get_condition_variable offset
         end
+
+        Result.new(
+            Proc.new { condition_variables.each { |cv| cv.signal } },
+            Proc.new { "Deleted #{condition_variables.count} rows" }
+        )
 
         #@table.cleanup
     end

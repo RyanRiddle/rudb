@@ -23,27 +23,20 @@ class Transaction
 
 	def add(&code)
         statement = code.call self
-        if statement.is_a? DeleteCommand
-            @cvs = statement.execute
-        else
-            @results.push statement.execute
-            @results.last
-        end
+        @results.push statement.execute
+        @results.last.peek
 	end
 
 	def commit
         @commit_log.commit @id
-        if not @cvs.nil?
-            @cvs.each do |cv|
-                cv.signal
-            end
-        end
+        @results.map { |callback| callback.commit }
+
         #@rollback_mechanism.discard()
-        @results
 	end
 
     def rollback
         @commit_log.abort @id
+
         #@rollback_mechanism.rollback()
     end
 

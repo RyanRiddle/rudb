@@ -1,3 +1,5 @@
+require 'pry'
+
 class UpdateCommand
     attr_reader :table
 
@@ -13,18 +15,26 @@ class UpdateCommand
         table_name = "#{@transaction_id}_tmp_tbl" 
 		tmp_tbl = @db.create_table table_name
 
-		updates = @record_enumerator.each do |record, offset|
-			@table.mark(record, offset, @transaction_id)
+		condition_variables = (@record_enumerator.map do |record, offset|
+			cv = @table.mark(record, offset, @transaction_id)
 		
             new_record = Record.copy @transaction_id, record
 			new_record.set @set_clause
 			tmp_tbl.insert new_record
-		end		
+			#@table.insert new_record
+
+            cv
+		end).force
 
 		@table.concat tmp_tbl
 		@db.drop_table table_name
 
-		@table.cleanup
+		#@table.cleanup
+
+        Result.new(
+            Proc.new { condition_variables.each { |cv| cv.signal } },
+            Proc.new { "Updated #{condition_variables.count} rows" }
+        )
     end
 
     def render

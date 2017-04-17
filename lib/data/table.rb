@@ -64,6 +64,10 @@ class Table
             _mark(offset, transaction_id)
             #cv.signal
         end
+
+        # i don't like returning the condition variable here
+        # but it beats exposing the get_condition_variable call
+        cv
 	end
 
 	def cleanup

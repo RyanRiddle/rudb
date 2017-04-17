@@ -16,7 +16,11 @@ class SelectStatement
     
     def execute
         reduce_dimensions!
-        take_results
+        results = take_results
+        Result.new(
+            Proc.new {},
+            Proc.new { results }
+        )
     end
 
     private
