@@ -115,7 +115,6 @@ class Table
         @record_m_and_cv[offset]
     end
 
-    private
     def get_record_at offset
         File.open(@filename, "r") do |f|
             f.seek(offset)
@@ -128,6 +127,7 @@ class Table
         end
     end
     
+    private
     def _mark(offset, transaction_id)
         told = nil
         record = nil
