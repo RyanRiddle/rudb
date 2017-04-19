@@ -1,15 +1,32 @@
-class Result
-    def initialize(cleanup_code, peek_code)
-        @cleanup_code = cleanup_code
-        @peek_code = peek_code
+module Result
+    attr_reader :result
+
+    def initialize(result, ms_and_cvs={})
+        @result = result
+        @ms_and_cvs = ms_and_cvs
     end
 
-    def peek
-        @peek_code.call
+    def signal_condition_variables
+        @ms_and_cvs.each do |m, cv|
+            m.synchronize do
+                cv.signal
+            end
+        end
     end
+end
 
-    def commit
-        @cleanup_code.call
-        @peek_code.call
+class SuccessfulStatement
+    include Result
+
+    def success?
+        true
+    end
+end
+
+class FailedStatement
+    include Result
+    
+    def success?
+        false
     end
 end

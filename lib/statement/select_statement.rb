@@ -17,10 +17,7 @@ class SelectStatement
     def execute
         reduce_dimensions!
         results = take_results
-        Result.new(
-            Proc.new {},
-            Proc.new { results }
-        )
+        SuccessfulStatement.new results
     end
 
     private

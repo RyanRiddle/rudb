@@ -69,7 +69,9 @@ class CommitLog
 
     private
     def get_status transaction_id
-        @transaction_statuses[transaction_id]
+        @file_mutex.synchronize do
+            @transaction_statuses[transaction_id]
+        end
     end
 
     def set_status transaction_id, status

@@ -1,4 +1,5 @@
 require_relative 'rollback_journal'
+require 'pry'
 
 class Transaction
     attr_reader :rollback_mechanism
@@ -19,29 +20,63 @@ class Transaction
 =end
 
         @active_transactions = @commit_log.start @id
+
+        if block_given?
+            statement = yield self
+            result = statement.execute
+            @results.push result
+            
+            if not result.success?
+                rollback
+            end
+
+            commit
+        end
 	end
 
 	def add(&code)
         statement = code.call self
-        @results.push statement.execute
-        @results.last.peek
+        result = statement.execute
+        @results.push result
+
+        if not result.success?
+            rollback
+        end
+
+        result.result
 	end
 
 	def commit
-        @commit_log.commit @id
-        @results.map { |callback| callback.commit }
+        if @commit_log.in_progress? @id
+            @commit_log.commit @id
+            puts @commit_log.committed? @id
+            signal_condition_variables
+            puts "signaled"
+        end
 
         #@rollback_mechanism.discard()
 	end
 
     def rollback
         @commit_log.abort @id
+        signal_condition_variables
 
         #@rollback_mechanism.rollback()
     end
 
+    def signal_condition_variables
+        @results.each do |result|
+            result.signal_condition_variables
+        end
+    end
+
     def can_see? record
         record.in_scope_for? @id, @active_transactions, @commit_log
+    end
+
+    private
+    def execute_statement statement
+        statement.execute
     end
 end
 

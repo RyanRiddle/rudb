@@ -12,11 +12,7 @@ class InsertCommand
     def execute
         record = Record.new @transaction_id, @hash
         @table.insert record
-
-        Result.new(
-            Proc.new {},
-            Proc.new { "1 new row" }
-        )
+        SuccessfulStatement.new "one new row"
     end
 
     def render

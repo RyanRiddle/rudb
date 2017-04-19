@@ -43,14 +43,15 @@ class Table
         end
 	end
 
-	def mark(record, offset, transaction_id)	# marks record deleted
-        mutex = get_mutex offset
-        cv = get_condition_variable offset
-        commit_log = @db.commit_log
+	def mark(offset, transaction_id)	# marks record deleted
+        mutex, cv = make_mutex_cv_pair offset
 
         mutex.synchronize do
+            record = get_record_at offset
             deleter_id = record.deleted_by
 
+            puts deleter_id
+            commit_log = @db.commit_log
             while commit_log.in_progress? deleter_id
                 cv.wait(mutex)
             end 
@@ -58,16 +59,12 @@ class Table
             if commit_log.committed? deleter_id
                 puts "too late"
                 cv.signal
-                break TOO_LATE
+                return TOO_LATE
             end
 
             _mark(offset, transaction_id)
             #cv.signal
         end
-
-        # i don't like returning the condition variable here
-        # but it beats exposing the get_condition_variable call
-        cv
 	end
 
 	def cleanup
@@ -114,7 +111,23 @@ class Table
 		end
 	end
 
+    def get_mutex_and_condition_variable offset
+        @record_m_and_cv[offset]
+    end
+
     private
+    def get_record_at offset
+        File.open(@filename, "r") do |f|
+            f.seek(offset)
+
+            length = f.readline.to_i
+            serialized_record = f.read length
+
+            record = Record.read serialized_record
+            return record
+        end
+    end
+    
     def _mark(offset, transaction_id)
         told = nil
         record = nil
@@ -134,20 +147,18 @@ class Table
         File.write @filename, record.serialize, told
     end
 
-    def get_mutex offset
-        if @record_m_and_cv[offset].nil?
-            @record_m_and_cv[offset] = [Mutex.new, ConditionVariable.new]
+    def make_mutex_cv_pair offset
+        @file_mutex.synchronize do
+            if @record_m_and_cv[offset].nil?
+                @record_m_and_cv[offset] = 
+                    { Mutex.new => ConditionVariable.new }
+            end
         end
 
-        @record_m_and_cv[offset][0]
-    end
-
-    def get_condition_variable offset
-        if @record_m_and_cv[offset].nil?
-            @record_m_and_cv[offset] = [Mutex.new, ConditionVariable.new]
-        end
-        
-        @record_m_and_cv[offset][1]
+        hash = @record_m_and_cv[offset]
+        mutex = hash.first[0]
+        cv    = hash.first[1]
+        return mutex, cv
     end
 
     def create_file_if_necessary
