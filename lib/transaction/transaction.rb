@@ -49,9 +49,7 @@ class Transaction
 	def commit
         if @commit_log.in_progress? @id
             @commit_log.commit @id
-            puts @commit_log.committed? @id
             signal_condition_variables
-            puts "signaled"
         end
 
         #@rollback_mechanism.discard()
