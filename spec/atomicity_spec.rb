@@ -1,53 +1,49 @@
 require_relative 'spec_helper'
 
 class TransactionTests < Test::Unit::TestCase
-    def test_rollback_journal
-        table = create_db_with_table "one", "restaurant"
-
-        command = table.statement.insert(name: "Black Burger")
-        commands = [command]
-
-        rollback_journal = RollbackJournal.new
-        rollback_journal.prep(commands)
-
-        assert_block { File.exist? "#{table.filename}.journal" }
-
-        rollback_journal.discard
-
-        assert_block { not File.exist? "#{table.filename}.journal" }
-
-        delete_tables_and_destroy_db "one", "restaurant"
-    end
-
     def test_failed_transaction
-        table = create_db_with_table "two", "restaurant"
+        db, table = create_db_with_table "two", "restaurant"
 
-        table.statement.insert(name: "one lonely restaurant").execute
-
-        assert table.statement.top(100).length == 1
-
-        commands = 100_000.times.map do
-            table.statement.insert(name: "another garbage row")
+        Transaction.new db do |t|
+            Statement.new(table, t).insert(name: "one lonely restaurant")
         end
 
-        rj = RollbackJournal.new
-        transaction = Transaction.new rj
-        commands.each { |c| transaction.add c }
+        t = Transaction.new db
+        results = t.add do |t|
+            Statement.new(table, t).select
+        end
+        t.commit
+        puts results
 
-        thread = Thread.new { transaction.commit }
+        assert results.length == 1
+
+        thread = Thread.new do
+            t = Transaction.new db
+            100_000.times do
+                t.add do |t|
+                    Statement.new(table, t).
+                        insert(name: "another garbage row")
+                end
+            end
+            t.commit
+        end
+
+        while not thread.status == "run"
+            puts "waiting"
+        end
         
-        while not File.exist? "#{commands.last.table.filename}.journal"
-            # make sure the commit thread is running
-            puts "waiting for transaction to start"
-        end
-    
         Thread.kill thread
 
         # "restart" the database
         db = Database.new "two", "/tmp"
         table = db.get "restaurant"
 
-        result_set = table.statement.top 1000
+        t = Transaction.new db
+        result_set = t.add do |t|
+            Statement.new(table, t).select
+        end
+        t.commit
+
         assert_block do 
             result_set.length == 1
         end
@@ -56,21 +52,36 @@ class TransactionTests < Test::Unit::TestCase
     end
 
     def test_successful_transaction
-        table = create_db_with_table "three", "restaurant"
+        db, table = create_db_with_table "three", "restaurant"
 
-        commands = [table.statement.
-                        insert(name: "Black Burger", type: "burgers"),
-                    table.statement.
-                        insert(name: "Golden Steamer", type: "dumplings"),
-                    table.statement.where(type: "dumplings").
-                        update(type: "buns"),
-                    table.statement.where(type: "burgers").delete]
-                        
-        transaction = Transaction.new RollbackJournal.new
-        commands.each { |c| transaction.add c }
+        transaction = Transaction.new db
+
+        transaction.add do |t|
+            Statement.new(table, t).
+                insert(name: "Black Burger", type: "burgers")
+        end
+        transaction.add do |t|
+            Statement.new(table, t).
+                insert(name: "Golden Steamer", type: "dumplings")
+        end
+        transaction.add do |t|
+            Statement.new(table, t).
+                where(type: "dumplings").
+                update(type: "buns")
+        end
+        transaction.add do |t|
+            Statement.new(table, t).
+                where(type: "burgers").delete
+        end
+
         transaction.commit
 
-        result_set = table.statement.select(:name, :type).top 10
+        transaction = Transaction.new db
+        result_set = transaction.add do |t|
+            Statement.new(table, t).select(:name, :type)
+        end
+        transaction.commit
+
         assert_block do 
             result_set.length == 1 and 
             result_set[0][0] == "Golden Steamer" and

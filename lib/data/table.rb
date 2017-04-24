@@ -86,6 +86,26 @@ class Table
 =end
 	end
 
+    def has_bad_record?
+        File.open(@filename, "r") do |f|
+            until f.eof?
+                offset = f.tell
+                header = f.readline
+                length = header.to_i
+                serialized_record = f.read length
+                if not serialized_record.bytes.count == length
+                    return offset
+                end
+            end
+        end
+        
+        return false
+    end
+
+    def fix_bad_record offset_of_bad_record
+        File.truncate offset_of_bad_record
+    end
+
 	def each_record(transaction)
 		e = Enumerator.new do |y|
             File.open(@filename, "r") do |f|

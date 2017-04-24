@@ -63,6 +63,16 @@ class Database
     end
 
     def rollback_failed_transactions
+        if @commit_log.any_in_progress?
+            @tables.each do |_, table|
+                offset = table.has_bad_record?
+                table.fix_bad_record offset
+            end
+
+            @commit_log.abort_all_in_progress
+        end
+
+=begin
         journal_files = find_journal_files
 
         if not journal_files.empty?
@@ -70,6 +80,7 @@ class Database
             failed_transaction = Transaction.new self, journal
             failed_transaction.rollback
         end
+=end
     end
 
     def find_journal_files

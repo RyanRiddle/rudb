@@ -67,6 +67,18 @@ class CommitLog
         set_status transaction_id, ABORTED
     end
 
+    def any_in_progress?
+        @transaction_statuses.any? { |status| status == IN_PROGRESS }
+    end
+
+    def abort_all_in_progress
+        @transaction_statuses.each_with_index do |status, id|
+            if status == IN_PROGRESS
+                self.abort id
+            end
+        end
+    end
+
     private
     def get_status transaction_id
         @file_mutex.synchronize do
