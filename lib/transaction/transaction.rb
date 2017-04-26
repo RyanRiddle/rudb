@@ -11,14 +11,6 @@ class Transaction
         @commit_log = db.commit_log
         @results = []
 
-=begin
-        @rollback_mechanism = rollback_mechanism
-        if @rollback_mechanism.nil?
-            @rollback_mechanism = RollbackJournal.new db
-        end
-        #@rollback_mechanism.prep
-=end
-
         @active_transactions = @commit_log.start @id
 
         if block_given?
@@ -51,15 +43,11 @@ class Transaction
             @commit_log.commit @id
             signal_condition_variables
         end
-
-        #@rollback_mechanism.discard()
 	end
 
     def rollback
         @commit_log.abort @id
         signal_condition_variables
-
-        #@rollback_mechanism.rollback()
     end
 
     def signal_condition_variables
