@@ -1,12 +1,10 @@
-require_relative 'rollback_journal'
 require 'pry'
 
 class Transaction
-    attr_reader :rollback_mechanism
     attr_reader :id
     attr_reader :active_transactions
 
-	def initialize(db, rollback_mechanism=nil)
+	def initialize db
         @id = db.next_transaction_id
         @commit_log = db.commit_log
         @results = []
